@@ -1,0 +1,39 @@
+# ETL Pipeline for Fashion Studio
+
+## Project Information
+- Author: Muhammad Khalid Al Ghifari
+- Date: May 13, 2025
+
+## Project Overview
+This project implements an ETL (Extract, Transform, Load) pipeline to scrape product data from Fashion Studio website (https://fashion-studio.dicoding.dev/), transform the data according to business requirements, and load it into a CSV repository.
+
+## Features
+- **Extract**: Web scraping of product data from Fashion Studio website
+  - Collects Title, Price, Rating, Colors, Size, Gender
+  - Includes timestamp of extraction
+  - Handles pagination to extract all products
+
+- **Transform**: Data cleaning and transformation
+  - Converts USD prices to IDR (exchange rate: Rp16,000)
+  - Cleans rating values to extract numerical ratings
+  - Extracts numeric values from Colors field
+  - Removes 'Size:' prefix from Size field
+  - Removes 'Gender:' prefix from Gender field
+  - Removes duplicate entries and null values
+  - Removes invalid products (e.g., "Unknown Product")
+
+- **Load**: Data storage
+  - Saves transformed data to CSV file
+  - Handles errors gracefully
+
+## Implementation Details
+- Modular code structure with separate modules for each ETL phase
+- Comprehensive unit tests with high test coverage
+- Error handling throughout the pipeline
+
+## How to Run
+1. Install dependencies: `pip install -r requirements.txt`
+2. Run the ETL pipeline: `python main.py`
+
+## Repository Choice
+For this submission, I've implemented CSV storage only. The code structure supports future integration with Google Sheets and PostgreSQL, but these are not currently implemented.

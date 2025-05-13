@@ -23,11 +23,19 @@ def transform_data(df):
         # Make a copy to avoid modifying the original DataFrame
         transformed_df = df.copy()
         
-        # Drop rows with null values
-        transformed_df = transformed_df.dropna()
+        # Define invalid patterns
+        dirty_patterns = {
+            "Title": ["Unknown Product"],
+            "Rating": ["Invalid Rating / 5", "Not Rated"],
+            "Price": ["Price Unavailable", None]
+        }
         
-        # Remove rows with "Unknown Product" in the Title column
-        transformed_df = transformed_df[transformed_df['Title'] != 'Unknown Product']
+        # Remove rows with any dirty patterns
+        for column, invalid_values in dirty_patterns.items():
+            transformed_df = transformed_df[~transformed_df[column].isin(invalid_values)]
+
+        # Drop nulls
+        transformed_df = transformed_df.dropna()
         
         # Transform Price column: convert USD to IDR
         def convert_price_to_idr(price):

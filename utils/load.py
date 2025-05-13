@@ -26,23 +26,31 @@ def save_to_csv(df, output_path="products.csv"):
         print(f"Error saving data to CSV: {str(e)}")
         return False
 
-def load_data(df, output_csv_path="products.csv"):
+def load_data(df, output_csv_path="products.csv", google_sheet_id=None, postgresql_conn_string=None):
     """
-    Load transformed data to CSV file only
+    Load transformed data to repositories
     
     Args:
         df (pandas.DataFrame): DataFrame to load
         output_csv_path (str): Path to save the CSV file
+        google_sheet_id (str, optional): Google Sheets ID (not implemented)
+        postgresql_conn_string (str, optional): PostgreSQL connection string (not implemented)
         
     Returns:
-        dict: Dictionary with status for CSV saving
+        dict: Dictionary with status for each repository
     """
     if df is None or df.empty:
         print("Error: Cannot load empty DataFrame")
-        return {"csv": False}
+        return {"csv": False, "google_sheets": False, "postgresql": False}
     
     results = {}
+    
+    # Save to CSV
     results["csv"] = save_to_csv(df, output_csv_path)
+    
+    # Report other repositories as None (skipped)
+    results["google_sheets"] = None
+    results["postgresql"] = None
     
     return results
 
