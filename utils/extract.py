@@ -202,7 +202,7 @@ def scrape_main(base_url="https://fashion-studio.dicoding.dev", max_pages=50):
 
 if __name__ == "__main__":
     # Test the scraper
-    df = scrape_main(max_pages=2)
+    df = scrape_main(max_pages=50)
     if df is not None:
         print(df.head())
         df.to_csv("raw_products.csv", index=False)

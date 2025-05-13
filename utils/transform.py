@@ -1,215 +1,154 @@
 import pandas as pd
-import re
 import numpy as np
-
-def clean_price(price):
-    """
-    Clean and convert price from USD to IDR
-    
-    Args:
-        price (str): Price in string format (e.g., "$24.99" or "Price Unavailable")
-        
-    Returns:
-        float or None: Converted price in IDR or None if price is unavailable
-    """
-    if pd.isna(price) or price == "Price Unavailable" or price == "Unavailable":
-        return None
-    
-    # Extract numeric value from price string
-    try:
-        # Extract numeric part using regex
-        match = re.search(r'\$?(\d+\.\d+|\d+)', price)
-        if match:
-            # Convert to float and multiply by exchange rate (16000 IDR per USD)
-            price_usd = float(match.group(1))
-            price_idr = price_usd * 16000
-            return price_idr
-        else:
-            return None
-    except Exception as e:
-        print(f"Error cleaning price '{price}': {str(e)}")
-        return None
-
-def clean_rating(rating):
-    """
-    Clean rating data
-    
-    Args:
-        rating (str): Rating in string format (e.g., "Rating: ⭐ 4.8 / 5" or "Rating: Not Rated")
-        
-    Returns:
-        float or None: Numeric rating or None if rating is not available
-    """
-    if pd.isna(rating):
-        return None
-    
-    try:
-        # Extract rating using regex
-        match = re.search(r'(\d+\.\d+|\d+)\s*\/\s*5', rating)
-        if match:
-            return float(match.group(1))
-        elif "Invalid Rating" in rating or "Not Rated" in rating:
-            return None
-        else:
-            return None
-    except Exception as e:
-        print(f"Error cleaning rating '{rating}': {str(e)}")
-        return None
-
-def clean_colors(colors):
-    """
-    Clean colors data by extracting number of colors
-    
-    Args:
-        colors (str): Colors in string format (e.g., "3 Colors")
-        
-    Returns:
-        int or None: Number of colors or None if data is not available
-    """
-    if pd.isna(colors):
-        return None
-    
-    try:
-        # Extract number of colors using regex
-        match = re.search(r'(\d+)\s*Colors', colors)
-        if match:
-            return int(match.group(1))
-        else:
-            return None
-    except Exception as e:
-        print(f"Error cleaning colors '{colors}': {str(e)}")
-        return None
-
-def clean_size(size):
-    """
-    Clean size data by removing "Size: " prefix
-    
-    Args:
-        size (str): Size in string format (e.g., "Size: M")
-        
-    Returns:
-        str or None: Size value or None if data is not available
-    """
-    if pd.isna(size):
-        return None
-    
-    try:
-        # Remove "Size: " prefix
-        match = re.search(r'Size:\s*(.+)', size)
-        if match:
-            return match.group(1).strip()
-        else:
-            return None
-    except Exception as e:
-        print(f"Error cleaning size '{size}': {str(e)}")
-        return None
-
-def clean_gender(gender):
-    """
-    Clean gender data by removing "Gender: " prefix
-    
-    Args:
-        gender (str): Gender in string format (e.g., "Gender: Men")
-        
-    Returns:
-        str or None: Gender value or None if data is not available
-    """
-    if pd.isna(gender):
-        return None
-    
-    try:
-        # Remove "Gender: " prefix
-        match = re.search(r'Gender:\s*(.+)', gender)
-        if match:
-            return match.group(1).strip()
-        else:
-            return None
-    except Exception as e:
-        print(f"Error cleaning gender '{gender}': {str(e)}")
-        return None
+import re
 
 def transform_data(df):
     """
-    Transform scraped data by cleaning and normalizing
+    Transform the raw scraped data according to the requirements:
+    - Convert price from USD to IDR (exchange rate 16,000)
+    - Clean rating values to extract the numerical rating
+    - Clean colors values to extract just the number
+    - Clean size values to remove the "Size: " prefix
+    - Clean gender values to remove the "Gender: " prefix
+    - Remove duplicates and null values
+    - Remove invalid products like "Unknown Product"
     
     Args:
-        df (pandas.DataFrame): DataFrame containing scraped data
+        df (pandas.DataFrame): Raw data scraped from the website
         
     Returns:
-        pandas.DataFrame: Cleaned and transformed DataFrame
+        pandas.DataFrame: Transformed data
     """
     try:
-        # Verify the DataFrame is not empty
-        if df is None or df.empty:
-            print("Error: Input DataFrame is empty or None")
-            return pd.DataFrame()
-            
-        # Create a copy to avoid modifying the original DataFrame
-        df_clean = df.copy()
+        # Make a copy to avoid modifying the original DataFrame
+        transformed_df = df.copy()
         
-        print(f"Starting transformation. Initial shape: {df_clean.shape}")
+        # Drop rows with null values
+        transformed_df = transformed_df.dropna()
         
-        # Clean individual columns
-        print("Cleaning Price column...")
-        df_clean['Price'] = df_clean['Price'].apply(clean_price)
+        # Remove rows with "Unknown Product" in the Title column
+        transformed_df = transformed_df[transformed_df['Title'] != 'Unknown Product']
         
-        print("Cleaning Rating column...")
-        df_clean['Rating'] = df_clean['Rating'].apply(clean_rating)
+        # Transform Price column: convert USD to IDR
+        def convert_price_to_idr(price):
+            try:
+                if price and isinstance(price, str):
+                    # Extract the numerical value from the price string
+                    match = re.search(r'\$(\d+(?:\.\d+)?)', price)
+                    if match:
+                        # Convert to IDR with exchange rate of 16,000
+                        price_value = float(match.group(1))
+                        return price_value * 16000
+                    else:
+                        return np.nan
+                else:
+                    return np.nan
+            except Exception as e:
+                print(f"Error converting price '{price}': {str(e)}")
+                return np.nan
+                
+        transformed_df['Price'] = transformed_df['Price'].apply(convert_price_to_idr)
         
-        print("Cleaning Colors column...")
-        df_clean['Colors'] = df_clean['Colors'].apply(clean_colors)
+        # Transform Rating column: extract the numerical rating
+        def extract_rating(rating):
+            try:
+                if rating and isinstance(rating, str):
+                    # Extract the numerical value from the rating string
+                    match = re.search(r'(\d+\.\d+)', rating)
+                    if match:
+                        return float(match.group(1))
+                    else:
+                        return np.nan
+                else:
+                    return np.nan
+            except Exception as e:
+                print(f"Error extracting rating '{rating}': {str(e)}")
+                return np.nan
+                
+        transformed_df['Rating'] = transformed_df['Rating'].apply(extract_rating)
         
-        print("Cleaning Size column...")
-        df_clean['Size'] = df_clean['Size'].apply(clean_size)
+        # Transform Colors column: extract just the number
+        def extract_colors(colors):
+            try:
+                if colors and isinstance(colors, str):
+                    # Extract the numerical value from the colors string
+                    match = re.search(r'(\d+)', colors)
+                    if match:
+                        return int(match.group(1))
+                    else:
+                        return np.nan
+                else:
+                    return np.nan
+            except Exception as e:
+                print(f"Error extracting colors '{colors}': {str(e)}")
+                return np.nan
+                
+        transformed_df['Colors'] = transformed_df['Colors'].apply(extract_colors)
         
-        print("Cleaning Gender column...")
-        df_clean['Gender'] = df_clean['Gender'].apply(clean_gender)
+        # Transform Size column: remove the "Size: " prefix
+        def clean_size(size):
+            try:
+                if size and isinstance(size, str):
+                    return size.replace('Size: ', '')
+                else:
+                    return np.nan
+            except Exception as e:
+                print(f"Error cleaning size '{size}': {str(e)}")
+                return np.nan
+                
+        transformed_df['Size'] = transformed_df['Size'].apply(clean_size)
         
-        # Remove invalid products (e.g., "Unknown Product")
-        print("Removing invalid products...")
-        df_clean = df_clean[df_clean['Title'] != "Unknown Product"]
+        # Transform Gender column: remove the "Gender: " prefix
+        def clean_gender(gender):
+            try:
+                if gender and isinstance(gender, str):
+                    return gender.replace('Gender: ', '')
+                else:
+                    return np.nan
+            except Exception as e:
+                print(f"Error cleaning gender '{gender}': {str(e)}")
+                return np.nan
+                
+        transformed_df['Gender'] = transformed_df['Gender'].apply(clean_gender)
         
-        # Drop rows with null values in important columns
-        print("Dropping null values...")
-        df_clean = df_clean.dropna(subset=['Title', 'Price', 'Rating', 'Colors', 'Size', 'Gender'])
+        # Drop any rows with NaN values after transformation
+        transformed_df = transformed_df.dropna()
         
-        # Drop duplicate rows based on all columns except timestamp
-        print("Removing duplicates...")
-        df_clean = df_clean.drop_duplicates(subset=['Title', 'Price', 'Rating', 'Colors', 'Size', 'Gender'])
+        # Drop duplicates
+        transformed_df = transformed_df.drop_duplicates()
         
-        # Ensure correct data types
-        print("Converting data types...")
-        df_clean['Price'] = df_clean['Price'].astype(float)
-        df_clean['Rating'] = df_clean['Rating'].astype(float)
-        df_clean['Colors'] = df_clean['Colors'].astype(int)
+        # Ensure data types are correctly set
+        transformed_df['Rating'] = transformed_df['Rating'].astype(float)
+        transformed_df['Colors'] = transformed_df['Colors'].astype(int)
+        transformed_df['Price'] = transformed_df['Price'].astype(float)
         
-        print(f"Transformation complete. Rows before: {len(df)}, Rows after: {len(df_clean)}")
-        print(f"Final DataFrame info:\n{df_clean.dtypes}")
+        return transformed_df
         
-        return df_clean
-    
     except Exception as e:
         print(f"Error in transform_data: {str(e)}")
-        # Return empty DataFrame if transformation fails
-        return pd.DataFrame()
+        return None
 
 if __name__ == "__main__":
-    # Test the transformation
+    # Test the transformation function
     try:
-        print("Testing transform.py...")
-        # Load sample data from CSV 
-        try:
-            sample_df = pd.read_csv("raw_products.csv")
-            transformed_df = transform_data(sample_df)
+        # Load the raw data
+        raw_df = pd.read_csv("raw_products.csv")
+        
+        # Transform the data
+        transformed_df = transform_data(raw_df)
+        
+        if transformed_df is not None:
+            # Print the first few rows
             print(transformed_df.head())
+            
+            # Display data types
+            print("\nData Types:")
             print(transformed_df.dtypes)
-            # Save transformed data
-            if not transformed_df.empty:
-                transformed_df.to_csv("transformed_products.csv", index=False)
-                print("Transformed data saved to transformed_products.csv")
-        except FileNotFoundError:
-            print("Error: raw_products.csv not found. Run extract.py first.")
-        except Exception as e:
-            print(f"Error during testing: {str(e)}")
+            
+            # Save the transformed data
+            transformed_df.to_csv("transformed_products.csv", index=False)
+            print("\nTransformed data saved to 'transformed_products.csv'")
+        else:
+            print("Transformation failed.")
     except Exception as e:
-        print(f"Unexpected error in main: {str(e)}")
+        print(f"Error testing transform_data: {str(e)}")
